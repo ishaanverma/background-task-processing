@@ -1,30 +1,60 @@
+/* eslint-disable no-unused-vars */
 const express = require('express');
 const Queue = require('bull');
+const { REDIS_URL } = require('../constants');
+
 const router = express.Router();
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-
-// connect to redis queue
-const queue = new Queue('tasks', REDIS_URL)
-
 router.get('/', (req, res) => {
-  // TODO: return all jobs (from mongodb ?)
-  res.send('GET all jobs in queue');
+  res.json({ page: 'Jobs endpoint' });
 });
 
-router.post('/create', (req, res) => {
+router.post('/create', async (req, res) => {
   // TODO: add job to queue and return job ID
-  res.send('POST job to queue')
+  const taskQueue = new Queue('tasks', REDIS_URL);
+  try {
+    const job = await taskQueue.add();
+    res.json({ id: job.id });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.log(err);
+  }
 });
 
-router.post('/:jobId/pause', (req, res) =>  {
+router.post('/:jobId/pause', (req, res) => {
   // TODO: pause current job using jobId
 });
 
-router.post('/:jobId/resume', (req, res) =>  {
+router.post('/:jobId/resume', (req, res) => {
   // TODO: resume current job using jobId
 });
 
-router.post('/:jobId/terminate', (req, res) =>  {
+router.post('/:jobId/terminate', async (req, res) => {
   // TODO: terminate current job using jobId
+  const id = req.params.jobId;
+  const stopQueue = new Queue('stop', REDIS_URL);
+  try {
+    const newJob = await stopQueue.add({}, { jobId: id });
+    res.send({ id: newJob.id });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.log(err);
+  }
 });
+
+router.post('/:jobId', async (req, res) => {
+  // const id = req.params.jobId;
+  // const job = await taskQueue.getJob(id);
+
+  // if (job == null)  {
+  //   res.status(404).end();
+  // }
+  // else {
+  //   let state = await job.q();
+  //   let progress = job._progress;
+  //   let reason = job.failedReason;
+  //   res.json({ id, state, progress, reason });
+  // }
+});
+
+module.exports = router;
