@@ -43,18 +43,7 @@ router.post('/:jobId/terminate', async (req, res) => {
 });
 
 router.post('/:jobId', async (req, res) => {
-  // const id = req.params.jobId;
-  // const job = await taskQueue.getJob(id);
-
-  // if (job == null)  {
-  //   res.status(404).end();
-  // }
-  // else {
-  //   let state = await job.q();
-  //   let progress = job._progress;
-  //   let reason = job.failedReason;
-  //   res.json({ id, state, progress, reason });
-  // }
+  // TODO: get status of job from jobId
 });
 
 module.exports = router;
