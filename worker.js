@@ -1,18 +1,34 @@
 /* eslint-disable no-await-in-loop */
 const cluster = require('cluster');
 const Queue = require('bull');
+const Redis = require('ioredis');
 // eslint-disable-next-line global-require
 const numCPUs = require('os').cpus().length - 2;
 
 const { REDIS_URL } = require('./constants');
+
+const client = new Redis(REDIS_URL);
+const subscriber = new Redis(REDIS_URL);
+const opts = {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return client;
+      case 'subscriber':
+        return subscriber;
+      default:
+        return new Redis(REDIS_URL);
+    }
+  },
+};
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function start() {
-  const taskQueue = new Queue('tasks', REDIS_URL);
-  const stopQueue = new Queue('stop', REDIS_URL);
+  const taskQueue = new Queue('tasks', opts);
+  const stopQueue = new Queue('stop', opts);
   taskQueue.process(async (job) => {
     let progress = 0;
     let stopJob = null;
