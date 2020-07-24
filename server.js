@@ -3,7 +3,6 @@ const morgan = require('morgan');
 // const mongoose = require('mongoose');
 const Arena = require('bull-arena');
 const Queue = require('bull');
-// const Redis = require('ioredis');
 const { PORT } = require('./constants');
 const jobsPath = require('./routes/jobs');
 const conn = require('./connection');

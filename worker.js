@@ -71,12 +71,12 @@ function start() {
           console.log(err);
           await job.discard();
           await job.moveToFailed({ message: 'Job Failed' }, true);
-          return Promise.reject();
+          return Promise.reject(new Error('Resume Failed'));
         }
       }
     }
     // only commit when job is completed
-    return Promise.resolve();
+    return Promise.resolve('success');
   });
 }
 
