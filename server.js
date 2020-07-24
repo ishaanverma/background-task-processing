@@ -3,29 +3,16 @@ const morgan = require('morgan');
 // const mongoose = require('mongoose');
 const Arena = require('bull-arena');
 const Queue = require('bull');
-const Redis =  require('ioredis');
-const { REDIS_URL, PORT } = require('./constants');
+// const Redis = require('ioredis');
+const { PORT } = require('./constants');
 const jobsPath = require('./routes/jobs');
+const conn = require('./connection');
 
 const app = express();
 
-const client = new Redis(REDIS_URL);
-const subscriber = new Redis(REDIS_URL);
-const opts = {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return client;
-      case 'subscriber':
-        return subscriber;
-      default:
-        return new Redis(REDIS_URL);
-    }
-  },
-};
-
-const taskQueue = new Queue('tasks', opts);
-const stopQueue = new Queue('stop', opts);
+const taskQueue = new Queue('tasks', conn);
+const stopQueue = new Queue('stop', conn);
+const pauseQueue = new Queue('pause', conn);
 
 const arenaConfig = Arena({
   queues: [
@@ -40,6 +27,14 @@ const arenaConfig = Arena({
     {
       name: 'stop',
       hostId: 'StoppedTaskQueue',
+      redis: {
+        port: 6379,
+        host: '127.0.0.1',
+      },
+    },
+    {
+      name: 'pause',
+      hostId: 'PausedTaskQueue',
       redis: {
         port: 6379,
         host: '127.0.0.1',
@@ -77,6 +72,16 @@ stopQueue.on('global:completed', (jobId, result) => {
   // eslint-disable-next-line no-console
   console.log(`Job ${jobId} successfully stopped: ${result}`);
 });
+
+pauseQueue.on('global:completed', (jobId, result) => {
+  // eslint-disable-next-line no-console
+  console.log(`Job ${jobId} successfully resumed: ${result}`);
+});
+
+// app.use((err, req, res, next) => {
+//   console.log(err.stack);
+//   res.status(500).send('Server Error');
+// });
 
 // start listening
 app.listen(PORT, () => {

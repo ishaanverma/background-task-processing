@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-console */
 const express = require('express');
 const Queue = require('bull');
 const { REDIS_URL } = require('../constants');
@@ -10,35 +11,57 @@ router.get('/', (req, res) => {
 });
 
 router.post('/create', async (req, res) => {
-  // TODO: add job to queue and return job ID
+  // add job to queue and return job ID
   const taskQueue = new Queue('tasks', REDIS_URL);
   try {
     const job = await taskQueue.add();
     res.json({ id: job.id });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.log(err);
+    res.status(500).send();
   }
 });
 
-router.post('/:jobId/pause', (req, res) => {
+router.post('/:jobId/pause', async (req, res) => {
   // TODO: pause current job using jobId
+  const id = req.params.jobId;
+  const pauseQueue = new Queue('pause', REDIS_URL);
+  try {
+    const pauseJob = await pauseQueue.add({}, { jobId: id });
+    res.send({ id: pauseJob.id });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send('Could not add to pause queue');
+  }
 });
 
-router.post('/:jobId/resume', (req, res) => {
-  // TODO: resume current job using jobId
+router.post('/:jobId/resume', async (req, res, next) => {
+  // resume current job using jobId
+  const id = req.params.jobId;
+  const pauseQueue = new Queue('pause', REDIS_URL);
+  try {
+    const pauseJob = await pauseQueue.getJob(id);
+    if (pauseJob == null) return res.status(500).send("Job doesn't exist");
+
+    await pauseJob.moveToCompleted(`Job ${id} resumed`, true, true);
+    res.send({ id: pauseJob.id });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send();
+    next(err);
+  }
 });
 
 router.post('/:jobId/terminate', async (req, res) => {
-  // TODO: terminate current job using jobId
+  // terminate current job using jobId
   const id = req.params.jobId;
   const stopQueue = new Queue('stop', REDIS_URL);
   try {
     const newJob = await stopQueue.add({}, { jobId: id });
     res.send({ id: newJob.id });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.log(err);
+    res.status(500).send();
   }
 });
 
