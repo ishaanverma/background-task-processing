@@ -6,6 +6,7 @@
 - [x] Implement task resuming
 - [ ] Add support for actual CSV parsing
 - [ ] Create DB for task status querying
+- [ ] Create docker file
 - [ ] Write Description
 
 ### Description
