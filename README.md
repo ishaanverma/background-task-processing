@@ -4,8 +4,9 @@
 - [x] Implement task stopping
 - [x] Implement task pausing (pausing currently wastes CPU cycles)
 - [x] Implement task resuming
-- [ ] Add support for actual CSV parsing
-- [ ] Create DB for task status querying
+- [x] Add support for actual CSV parsing
+- [x] Create DB for task status querying
+- [ ] Create frontend for displaying task status
 - [ ] Create docker file
 - [ ] Write Description
 
