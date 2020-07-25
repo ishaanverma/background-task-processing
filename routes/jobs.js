@@ -1,8 +1,10 @@
+/* eslint-disable consistent-return */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-console */
 const express = require('express');
 const Queue = require('bull');
 const conn = require('../connection');
+const JobModel = require('../models/JobModel');
 
 const router = express.Router();
 
@@ -14,7 +16,15 @@ router.post('/create', async (req, res) => {
   // add job to queue and return job ID
   const taskQueue = new Queue('tasks', conn);
   try {
-    const job = await taskQueue.add();
+    const job = await taskQueue.add({ filename: 'data.csv' });
+    // add to db
+    const jobStatus = new JobModel({
+      jobId: job.id,
+      status: 'working',
+    });
+    jobStatus.save((err) => {
+      if (err) return console.log(err);
+    });
     res.json({ id: job.id });
   } catch (err) {
     console.log(err);
@@ -32,6 +42,12 @@ router.post('/pause', async (req, res) => {
     if (pauseJob == null) return res.status(500).send("Job doesn't exist");
 
     const newJob = await pauseQueue.add({}, { jobId: id });
+    // update status in db
+    await JobModel.updateOne({ jobId: newJob.id },
+      { status: 'paused' },
+      (err) => {
+        if (err) return console.log(err);
+      });
     res.json({ id: newJob.id });
   } catch (err) {
     console.log(err);
@@ -48,6 +64,12 @@ router.post('/resume', async (req, res) => {
     if (pauseJob == null) return res.status(500).send("Job doesn't exist");
 
     await pauseJob.moveToCompleted(`Job ${id} resumed`, true, true);
+    // update status in db
+    await JobModel.updateOne({ jobId: pauseJob.id },
+      { status: 'working' },
+      (err) => {
+        if (err) return console.log(err);
+      });
     res.json({ id: pauseJob.id });
   } catch (err) {
     console.log(err);
@@ -65,6 +87,12 @@ router.post('/terminate', async (req, res) => {
     if (stopJob == null) return res.status(500).send("Job doesn't exist");
 
     const newJob = await stopQueue.add({}, { jobId: stopJob.id });
+    // update status in db
+    await JobModel.updateOne({ jobId: newJob.id },
+      { status: 'terminated' },
+      (err) => {
+        if (err) return console.log(err);
+      });
     res.send({ id: newJob.id });
   } catch (err) {
     console.log(err);
@@ -72,8 +100,8 @@ router.post('/terminate', async (req, res) => {
   }
 });
 
-router.post('/:jobId', async (req, res) => {
-  // TODO: get status of job from jobId
+router.get('/all', async (req, res) => {
+  // TODO: get status of jobs from DB
 });
 
 module.exports = router;

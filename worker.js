@@ -4,9 +4,14 @@
 const cluster = require('cluster');
 const Queue = require('bull');
 const Redis = require('ioredis');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 // eslint-disable-next-line global-require
-const numCPUs = require('os').cpus().length - 2;
+const numCPUs = require('os').cpus().length - 3;
 
+const { parseInfoCSV } = require('./jobs/parseInfo');
+const InfoModel = require('./models/InfoModel');
+const JobModel = require('./models/JobModel');
 const { REDIS_URL } = require('./constants');
 
 const client = new Redis(REDIS_URL);
@@ -23,6 +28,7 @@ const opts = {
     }
   },
 };
+dotenv.config();
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,31 +38,35 @@ function start() {
   const taskQueue = new Queue('tasks', opts);
   const stopQueue = new Queue('stop', opts);
   const pauseQueue = new Queue('pause', opts);
+  // connect to db
+  mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+  const db = mongoose.connection;
+  db.on('error', console.error.bind(console, 'connection error:'));
+  db.once('open', () => {
+    console.log('Connected to DB');
+  });
   taskQueue.process(async (job) => {
     let progress = 0;
-    let stopJob = null;
-    let pauseJob = null;
+    let stopJob = null; let pauseJob = null;
+    const { filename } = job.data;
+    let startRow = 0;
+    const threshold = 10;
+    let complete = false; let parsedDocs = []; let count = 0; let maxTries = 2;
 
-    if (Math.random() < 0.05) {
-      throw new Error('This job Failed!');
-    }
+    while (!complete && maxTries > 0) {
+      // parse CSV file and return array of documents to save
+      [parsedDocs, count] = await parseInfoCSV(filename, threshold, startRow);
+      if (count < threshold) complete = true;
 
-    while (progress < 100) {
-      // do some work
-      await sleep(100);
-      progress += 1;
-      job.progress(progress);
-
-      // at every iteration check if job was added to stop queue or pause queue
-      // a threshold can be set to check at every x iterations
+      // check if job was added to stop queue or pause queue
       stopJob = await stopQueue.getJob(job.id);
       pauseJob = await pauseQueue.getJob(job.id);
       if (stopJob != null) {
         // graceful shutdown here
         await job.discard();
         await job.moveToFailed({ message: 'Job Interrupted by user' }, true);
-        stopJob.progress(100);
         await stopJob.moveToCompleted('Job successfully stopped', true, true);
+        parsedDocs = [];
         return Promise.reject();
       }
 
@@ -64,6 +74,7 @@ function start() {
         console.log(`Job ${pauseJob.id} is paused`);
         try {
           // pause till in pause queue
+          // cpu cycles being wasted
           await pauseJob.finished();
           await pauseJob.remove();
           console.log(`Job ${pauseJob.id} is resumed`);
@@ -74,8 +85,31 @@ function start() {
           return Promise.reject(new Error('Resume Failed'));
         }
       }
+
+      // instead of saving every few iterations
+      // the final save can occur when the complete document is parsed
+      // provided there is enough RAM
+      await InfoModel.insertMany(parsedDocs, (error, docs) => {
+        if (error) {
+          console.log(`Document saving failed. Job ${job.id} failed`);
+        } else {
+          console.log(`Documents successfully inserted: Job ${job.id}: ${docs.length} docs`);
+        }
+      });
+      startRow += parsedDocs.length;
+      maxTries -= 1;
+      console.log('done 1');
+      await sleep(10000);
     }
-    // only commit when job is completed
+    console.log('done 2');
+    // update status in db
+    await JobModel.updateOne({ jobId: job.id },
+      { status: 'completed' },
+      (err) => {
+        if (err) return console.log(err);
+      });
+    console.log('done 3');
+    job.progress(100);
     return Promise.resolve('success');
   });
 }
