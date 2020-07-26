@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 /* eslint-disable no-console */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-await-in-loop */
@@ -46,7 +47,6 @@ function start() {
     console.log('Connected to DB');
   });
   taskQueue.process(async (job) => {
-    let progress = 0;
     let stopJob = null; let pauseJob = null;
     const { filename } = job.data;
     let startRow = 0;
@@ -65,19 +65,38 @@ function start() {
         // graceful shutdown here
         await job.discard();
         await job.moveToFailed({ message: 'Job Interrupted by user' }, true);
+        stopJob.progress(100);
         await stopJob.moveToCompleted('Job successfully stopped', true, true);
         parsedDocs = [];
+        // update status in db
+        await JobModel.updateOne({ jobId: job.id },
+          { status: 'terminated' },
+          (err) => {
+            if (err) return console.log(err);
+          });
         return Promise.reject();
       }
 
       if (pauseJob != null) {
         console.log(`Job ${pauseJob.id} is paused`);
+        // update status in db
+        await JobModel.updateOne({ jobId: job.id },
+          { status: 'paused' },
+          (err) => {
+            if (err) return console.log(err);
+          });
         try {
           // pause till in pause queue
           // cpu cycles being wasted
           await pauseJob.finished();
           await pauseJob.remove();
           console.log(`Job ${pauseJob.id} is resumed`);
+          // update status in db
+          await JobModel.updateOne({ jobId: job.id },
+            { status: 'working' },
+            (err) => {
+              if (err) return console.log(err);
+            });
         } catch (err) {
           console.log(err);
           await job.discard();
@@ -98,17 +117,15 @@ function start() {
       });
       startRow += parsedDocs.length;
       maxTries -= 1;
-      console.log('done 1');
       await sleep(10000);
     }
-    console.log('done 2');
     // update status in db
     await JobModel.updateOne({ jobId: job.id },
       { status: 'completed' },
       (err) => {
         if (err) return console.log(err);
       });
-    console.log('done 3');
+    console.log(`Job ${job.id} Completed`);
     job.progress(100);
     return Promise.resolve('success');
   });

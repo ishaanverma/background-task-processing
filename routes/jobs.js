@@ -44,7 +44,7 @@ router.post('/pause', async (req, res) => {
     const newJob = await pauseQueue.add({}, { jobId: id });
     // update status in db
     await JobModel.updateOne({ jobId: newJob.id },
-      { status: 'paused' },
+      { status: 'pausing' },
       (err) => {
         if (err) return console.log(err);
       });
@@ -66,7 +66,7 @@ router.post('/resume', async (req, res) => {
     await pauseJob.moveToCompleted(`Job ${id} resumed`, true, true);
     // update status in db
     await JobModel.updateOne({ jobId: pauseJob.id },
-      { status: 'working' },
+      { status: 'resuming' },
       (err) => {
         if (err) return console.log(err);
       });
@@ -89,7 +89,7 @@ router.post('/terminate', async (req, res) => {
     const newJob = await stopQueue.add({}, { jobId: stopJob.id });
     // update status in db
     await JobModel.updateOne({ jobId: newJob.id },
-      { status: 'terminated' },
+      { status: 'terminating' },
       (err) => {
         if (err) return console.log(err);
       });
@@ -101,7 +101,9 @@ router.post('/terminate', async (req, res) => {
 });
 
 router.get('/all', async (req, res) => {
-  // TODO: get status of jobs from DB
+  // get status of jobs from DB
+  const all = await JobModel.find({}).limit(10);
+  res.json(all);
 });
 
 module.exports = router;

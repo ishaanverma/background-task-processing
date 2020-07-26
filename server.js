@@ -54,6 +54,7 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use('/jobs', jobsPath);
 app.use('/', arenaConfig);
+app.use(express.static('public'));
 
 // setup basic routes
 app.get('/', (req, res) => {

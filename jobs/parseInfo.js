@@ -12,7 +12,6 @@ const parseInfoCSV = (filename, threshold, startRow) => new Promise((resolve) =>
     .pipe(csv.parse({ headers: true, maxRows: threshold, skipRows: startRow }))
     .on('error', (error) => console.log(error))
     .on('data', (row) => {
-      console.log(row.seq);
       count += 1;
       infoDocs.push(new InfoModel({
         seq: row.seq,
@@ -22,8 +21,7 @@ const parseInfoCSV = (filename, threshold, startRow) => new Promise((resolve) =>
         phone: row.phone,
       }));
     })
-    .on('end', (rowCount) => {
-      console.log(`Parsed ${rowCount} rows`);
+    .on('end', () => {
       resolve([infoDocs, count]);
     });
 });
