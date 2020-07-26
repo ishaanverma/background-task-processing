@@ -6,14 +6,13 @@ const cluster = require('cluster');
 const Queue = require('bull');
 const Redis = require('ioredis');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 // eslint-disable-next-line global-require
-const numCPUs = require('os').cpus().length - 3;
+const numCPUs = require('os').cpus().length;
 
 const { parseInfoCSV } = require('./jobs/parseInfo');
 const InfoModel = require('./models/InfoModel');
 const JobModel = require('./models/JobModel');
-const { REDIS_URL } = require('./constants');
+const { REDIS_URL, MONGO_URL } = require('./constants');
 
 const client = new Redis(REDIS_URL);
 const subscriber = new Redis(REDIS_URL);
@@ -29,7 +28,6 @@ const opts = {
     }
   },
 };
-dotenv.config();
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,7 +38,7 @@ function start() {
   const stopQueue = new Queue('stop', opts);
   const pauseQueue = new Queue('pause', opts);
   // connect to db
-  mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+  mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
   const db = mongoose.connection;
   db.on('error', console.error.bind(console, 'connection error:'));
   db.once('open', () => {

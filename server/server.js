@@ -2,14 +2,12 @@
 const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const Arena = require('bull-arena');
 const Queue = require('bull');
-const { PORT } = require('./constants');
+const { PORT, REDIS_HOST, MONGO_URL } = require('./constants');
 const jobsPath = require('./routes/jobs');
 const conn = require('./connection');
 
-dotenv.config();
 const app = express();
 
 const taskQueue = new Queue('tasks', conn);
@@ -23,7 +21,7 @@ const arenaConfig = Arena({
       hostId: 'TaskQueue',
       redis: {
         port: 6379,
-        host: '127.0.0.1',
+        host: REDIS_HOST,
       },
     },
     {
@@ -31,7 +29,7 @@ const arenaConfig = Arena({
       hostId: 'StoppedTaskQueue',
       redis: {
         port: 6379,
-        host: '127.0.0.1',
+        host: REDIS_HOST,
       },
     },
     {
@@ -39,7 +37,7 @@ const arenaConfig = Arena({
       hostId: 'PausedTaskQueue',
       redis: {
         port: 6379,
-        host: '127.0.0.1',
+        host: REDIS_HOST,
       },
     },
   ],
@@ -62,7 +60,7 @@ app.get('/', (req, res) => {
 });
 
 // connect to database
-mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {

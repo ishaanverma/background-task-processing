@@ -1,0 +1,23 @@
+{
+  "name": "atlan-backend-task-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "author": "Ishaan Verma",
+  "license": "ISC",
+  "dependencies": {
+    "bull": "^3.16.0",
+    "dotenv": "^8.2.0",
+    "fast-csv": "^4.3.1",
+    "ioredis": "^4.17.3",
+    "mongoose": "^5.9.25"
+  },
+  "devDependencies": {
+    "eslint": "^7.5.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0"
+  }
+}

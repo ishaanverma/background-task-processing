@@ -1,0 +1,32 @@
+version: "3"
+services:
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    restart:
+      always
+  db:
+    image: mongo
+    restart: always
+  worker:
+    build: ./worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - MONGO_URL=mongodb://db:27017/server
+    depends_on:
+      - redis
+      - db
+  server:
+    build: ./server
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URL=mongodb://db:27017/server
+    depends_on:
+      - redis
+      - db
