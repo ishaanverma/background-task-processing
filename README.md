@@ -63,6 +63,8 @@ When the user creates a job, the job is added to the `task queue` and a worker w
 
 In its current implementation if the user sends a pause request, the process assigned to the job waits for the resume request, thus wasting processing time. However, this can be changed to save the job's current state to disk and hence free up the process. When a resume request is received, the job's state can be loaded from the disk and added back to the `task queue`. 
 
+The code for the subscriber (job processor) is in `worker/worker.js` and the code for the publisher (REST API) is in `server/server.js` and `server/routes/jobs.js`.
+
 ## Screenshots
 ![Screenshot 1](./screenshots/Screenshot_4.png)
 ![Screenshot 2](./screenshots/Screenshot_5.png)
