@@ -7,8 +7,8 @@
 - [x] Add support for actual CSV parsing
 - [x] Create DB for task status querying
 - [x] Create frontend for displaying task status
-- [ ] Create docker file
-- [ ] Write Description
+- [x] Create docker file
 
-### Description
-
+### Screenshots
+![Screenshot 1](./screenshots/Screenshot_4.png)
+![Screenshot 2](./screenshots/Screenshot_5.png)
