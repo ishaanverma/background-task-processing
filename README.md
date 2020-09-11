@@ -1,7 +1,7 @@
 # Background Task Processing
 ## Running Docker
 ```
-git clone https://github.com/ishaanverma/backend-task.git
+git clone https://github.com/ishaanverma/background-task-processing.git
 cd backend-task/
 docker-compose up
 ```
