@@ -2,7 +2,7 @@
 ## Running Docker
 ```
 git clone https://github.com/ishaanverma/background-task-processing.git
-cd backend-task/
+cd background-task-processing/
 docker-compose up
 ```
 Log on to `http://localhost:3000/`
